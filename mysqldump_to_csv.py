@@ -18,6 +18,20 @@ def is_insert(line):
     return line.startswith('INSERT INTO') or False
 
 
+def is_header(line):
+    """
+    Returns true if the line begins a SQL header
+    """
+    return line.strip().startswith('CREATE TABLE') or False
+
+
+def is_key(line):
+    """
+    Returns true if the line begins with KEY (end of the header)
+    """
+    return line.strip().startswith('KEY') or False
+
+
 def get_values(line):
     """
     Returns the portion of an INSERT statement containing values
@@ -100,10 +114,23 @@ def main():
     # Iterate over all lines in all files
     # listed in sys.argv[1:]
     # or stdin if no args given.
+    header = False
+    columns = ''
     try:
         for line in fileinput.input():
             # Look for an INSERT statement and parse it.
-            if is_insert(line):
+            
+            if is_header(line):
+                header = True
+            elif is_key(line):
+                print(columns)
+                header = False
+            elif header == True:
+                if len(columns) > 0:
+                    columns += ','
+                columns += line.split()[0].strip('\'').strip('`')
+                #print('COLUMN: {}'.format(line.split()[0].strip('\'').strip('`')))
+            elif is_insert(line):
                 values = get_values(line)
                 if values_sanity_check(values):
                     parse_values(values, sys.stdout)
